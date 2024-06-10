@@ -8,7 +8,7 @@ def fetch_trends_data(keywords, timeframe='2020-06-04 2024-06-04'):
     all_data = []
 
     for keyword in keywords:
-        retries = 5  # Number of retries
+        retries = 1  # Number of retries
         delay = 60  # Initial delay in seconds
         while retries > 0:
             try:
