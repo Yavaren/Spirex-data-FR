@@ -2,7 +2,6 @@ from pytrends.request import TrendReq
 import pandas as pd
 import time
 import os
-import random
 
 def fetch_trends_data(keywords, timeframe='2020-06-04 2024-06-04'):
     pytrends = TrendReq(hl='fr-FR', tz=0)
@@ -23,7 +22,7 @@ def fetch_trends_data(keywords, timeframe='2020-06-04 2024-06-04'):
                     print(f"Collected data for {keyword} in France")
                 else:
                     print(f"No data for {keyword} in France.")
-                time.sleep(random.uniform(60, 120))  # Randomized delay
+                time.sleep(60)  # 60 sec delay
                 break  # Break out of retry loop on success
             except Exception as e:
                 retries -= 1
@@ -31,7 +30,6 @@ def fetch_trends_data(keywords, timeframe='2020-06-04 2024-06-04'):
                 if retries > 0:
                     print(f"Retrying in {delay} seconds... ({retries} retries left)")
                     time.sleep(delay)
-                    delay *= 2  # Exponential backoff
                 else:
                     print("Max retries reached, moving to next keyword.")
 
