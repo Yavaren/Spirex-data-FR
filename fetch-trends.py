@@ -2,46 +2,49 @@ from pytrends.request import TrendReq
 import pandas as pd
 import time
 import os
+import random
 
-# List of French region geocodes
-fr_region_geocodes = [
-    'FR-IDF', 'FR-ARA', 'FR-PAC', 'FR-HDF', 'FR-GES', 'FR-BFC', 'FR-NAQ', 'FR-OCC', 'FR-BRE',
-    'FR-PDL', 'FR-CVL', 'FR-NOR', 'FR-COR', 'FR-GUA', 'FR-MQ', 'FR-GUF', 'FR-LRE', 'FR-MAY'
-]
-
-def fetch_trends_data(keywords, regions, timeframe='2020-06-04 2024-06-04'):
+def fetch_trends_data(keywords, timeframe='2020-06-04 2024-06-04'):
     pytrends = TrendReq(hl='fr-FR', tz=0)
-    all_data = pd.DataFrame()
+    all_data = []
 
-    for region in regions:
-        for keyword in keywords:
+    for keyword in keywords:
+        retries = 5  # Number of retries
+        delay = 60  # Initial delay in seconds
+        while retries > 0:
             try:
-                pytrends.build_payload([keyword], cat=0, timeframe=timeframe, geo=region, gprop='')
+                print(f"Fetching data for {keyword} in France...")
+                pytrends.build_payload([keyword], cat=0, timeframe=timeframe, geo='FR', gprop='')
                 interest_over_time_df = pytrends.interest_over_time()
                 if not interest_over_time_df.empty:
                     interest_over_time_df = interest_over_time_df.drop(columns=['isPartial'])
-                    interest_over_time_df['region'] = region
                     interest_over_time_df['keyword'] = keyword
-                    all_data = pd.concat([all_data, interest_over_time_df])
-                    print(f"Collected data for {keyword} in {region}")
+                    all_data.append(interest_over_time_df)
+                    print(f"Collected data for {keyword} in France")
                 else:
-                    print(f"No data for {keyword} in {region}.")
-                time.sleep(60)  # Wait for 60 seconds to avoid hitting the rate limit
+                    print(f"No data for {keyword} in France.")
+                time.sleep(random.uniform(60, 120))  # Randomized delay
+                break  # Break out of retry loop on success
             except Exception as e:
-                print(f"An error occurred for keyword {keyword} in {region}: {e}")
-                time.sleep(60)  # Wait for 60 seconds before retrying with the next keyword
+                retries -= 1
+                print(f"An error occurred for keyword {keyword} in France: {e}")
+                if retries > 0:
+                    print(f"Retrying in {delay} seconds... ({retries} retries left)")
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
+                else:
+                    print("Max retries reached, moving to next keyword.")
 
-    if not all_data.empty:
-        file_path = os.path.join('data', 'combined_trends_data_by_region_fr.csv')
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        all_data.to_csv(file_path, index=False)
+    if all_data:
+        combined_data = pd.concat(all_data, ignore_index=True)
+        file_path = os.path.join(os.getcwd(), 'combined_trends_data.csv')
+        combined_data.to_csv(file_path, index=False)
         print(f"Saved combined data to {file_path}")
     else:
         print("No data collected for any keyword.")
 
 if __name__ == "__main__":
     kw_list = [
-        "smartphone", "laptop", "headphones", "tablet", "smartwatch",
+        "smartphone", "laptop",
     ]
-    fetch_trends_data(kw_list, fr_region_geocodes, timeframe='2020-06-04 2024-06-04')
-
+    fetch_trends_data(kw_list, timeframe='2020-06-04 2024-06-04')
